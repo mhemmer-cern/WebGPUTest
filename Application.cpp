@@ -38,12 +38,7 @@ bool Application::Initialize(){
   desc.requiredFeatureCount = 1;
   desc.requiredFeatures = &kTimedWaitAny;
 
-	// We create the instance using this descriptor
-	#ifdef WEBGPU_BACKEND_EMSCRIPTEN
-	mInstance = CreateInstance(nullptr);
-	#else //  WEBGPU_BACKEND_EMSCRIPTEN
 	mInstance = CreateInstance(&desc);
-	#endif //  WEBGPU_BACKEND_EMSCRIPTEN
 	// We can check whether there is actually an instance created
 	if (!mInstance) {
 		std::cerr << "Could not initialize WebGPU!" << std::endl;
@@ -54,7 +49,7 @@ bool Application::Initialize(){
 	// copied around without worrying about its size).
 	std::cout << "WGPU instance: " << mInstance.Get() << std::endl;
 
-  mSurface = glfw::CreateSurfaceForWindow(Instance(mInstance), mWindow);
+  mSurface = glfw::CreateSurfaceForWindow(mInstance, mWindow);
 
 	std::cout << "Requesting adapter..." << std::endl;
 	
