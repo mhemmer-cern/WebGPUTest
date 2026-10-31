@@ -77,6 +77,8 @@ add_executable(App
     main.cpp
     webgpu-utils.h
     webgpu-utils.cpp
+    Application.h
+    Application.cpp
 )
 
 set_target_properties(App PROPERTIES

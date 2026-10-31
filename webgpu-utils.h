@@ -1,66 +1,47 @@
 #pragma once
 
-#include <webgpu/webgpu.h>
+#include <webgpu/webgpu_cpp.h>
 
-#include <string_view>
-
-/**
- * Convert a WebGPU string view into a C++ std::string_view.
- */
-std::string_view toStdStringView(WGPUStringView wgpuStringView);
-
-/**
- * Convert a C++ std::string_view into a WebGPU string view.
- */
-WGPUStringView toWgpuStringView(std::string_view stdStringView);
-
-/**
- * Convert a C string into a WebGPU string view
- */
-WGPUStringView toWgpuStringView(const char* cString);
-
-/**
- * Sleep for a given number of milliseconds.
- * This works with both native builds and emscripten, provided that -sASYNCIFY
- * compile option is provided when building with emscripten.
- */
-void sleepForMilliseconds(unsigned int milliseconds);
-
-/**
- * Utility function to get a WebGPU adapter, so that
- *     WGPUAdapter adapter = requestAdapter(options);
- * is roughly equivalent to
- *     const adapter = await navigator.gpu.requestAdapter(options);
- */
-WGPUAdapter requestAdapterSync(WGPUInstance instance, WGPURequestAdapterOptions const * options);
-
-/**
- * Utility function to get a WebGPU device, so that
- *     WGPUAdapter device = requestDevice(adapter, options);
- * is roughly equivalent to
- *     const device = await adapter.requestDevice(descriptor);
- * It is very similar to requestAdapter
- */
-WGPUDevice requestDeviceSync(WGPUInstance instance, WGPUAdapter adapter, WGPUDeviceDescriptor const * descriptor);
-
-/**
- * An example of how we can inspect the capabilities of the hardware through
- * the adapter object.
- */
-void inspectAdapter(WGPUAdapter adapter);
-/**
- * Display information about a device
- */
-void inspectDevice(WGPUDevice device);
+#include <filesystem>
 #include <functional>
 
 /**
- * Fetch data from a GPU buffer back to the CPU.
- * This function blocks until the data is available on CPU, then calls the
- * `processBufferData` callback, and finally unmap the buffer.
+ * Request an adapter and block until it is available.
+ * The instance must have been created with the TimedWaitAny feature.
+ * Returns a null adapter on failure (test with `if (!adapter)`).
  */
-void fetchBufferDataSync(
-	WGPUInstance instance,
-	WGPUBuffer buffer,
-	std::function<void(const void*)> processBufferData
-);
+wgpu::Adapter requestAdapterSync(
+	wgpu::Instance const& instance,
+	wgpu::RequestAdapterOptions const& options);
+
+/**
+ * Request a device and block until it is available.
+ * Returns a null device on failure (test with `if (!device)`).
+ */
+wgpu::Device requestDeviceSync( wgpu::Instance const& instance, wgpu::Adapter const& adapter, wgpu::DeviceDescriptor const& descriptor);
+
+/** Print the adapter's limits, features and properties. */
+void inspectAdapter(wgpu::Adapter const& adapter);
+
+/** Print the device's features and limits. */
+void inspectDevice(wgpu::Device const& device);
+
+/**
+ * Load a WGSL shader from a file. The file name is used as the module's
+ * label, which shows up in WebGPU error messages.
+ * Returns a null shader module if the file cannot be read.
+ */
+wgpu::ShaderModule loadShaderModule(
+	wgpu::Device const& device,
+	std::filesystem::path const& path);
+
+/**
+ * Map a buffer for reading, wait until it is mapped, call `processBufferData`
+ * with a pointer to its contents, then unmap it again.
+ * The buffer must have been created with wgpu::BufferUsage::MapRead.
+ * Returns false if the mapping failed.
+ */
+bool fetchBufferDataSync(
+	wgpu::Instance const& instance,
+	wgpu::Buffer const& buffer,
+	std::function<void(void const*)> const& processBufferData);

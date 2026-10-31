@@ -2,3 +2,4 @@ build/
 .cache/
 *.code-workspace
 compile_commands.json
+.vscode
