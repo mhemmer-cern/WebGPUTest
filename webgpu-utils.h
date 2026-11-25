@@ -2,7 +2,6 @@
 
 #include <webgpu/webgpu_cpp.h>
 
-#include <filesystem>
 #include <functional>
 
 /**
@@ -26,14 +25,7 @@ void inspectAdapter(wgpu::Adapter const& adapter);
 /** Print the device's features and limits. */
 void inspectDevice(wgpu::Device const& device);
 
-/**
- * Load a WGSL shader from a file. The file name is used as the module's
- * label, which shows up in WebGPU error messages.
- * Returns a null shader module if the file cannot be read.
- */
-wgpu::ShaderModule loadShaderModule(
-	wgpu::Device const& device,
-	std::filesystem::path const& path);
+uint32_t ceilToNextMultiple(uint32_t value, uint32_t step);
 
 /**
  * Map a buffer for reading, wait until it is mapped, call `processBufferData`

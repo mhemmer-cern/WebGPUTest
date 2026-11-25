@@ -71,6 +71,18 @@ set(DAWN_FETCH_DEPENDENCIES ON)
 add_subdirectory("dawn" EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
+# GLM
+# ---------------------------------------------------------------------------
+include(FetchContent)
+
+FetchContent_Declare(
+	glm
+	URL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz
+)
+
+FetchContent_MakeAvailable(glm)
+
+# ---------------------------------------------------------------------------
 # The app
 # ---------------------------------------------------------------------------
 add_executable(App
@@ -79,13 +91,19 @@ add_executable(App
     webgpu-utils.cpp
     Application.h
     Application.cpp
-)
+    ResourceManager.h
+    ResourceManager.cpp)
 
 set_target_properties(App PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     COMPILE_WARNING_AS_ERROR ON
+)
+
+target_compile_definitions(App PRIVATE
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_LEFT_HANDED
 )
 
 if(MSVC)
@@ -95,11 +113,23 @@ else()
 endif()
 
 if(EMSCRIPTEN)
-    target_link_libraries(App PRIVATE emdawnwebgpu_cpp webgpu_glfw)
+    # Web: pack the resources folder into the page, available as "resources/..."
+    target_compile_definitions(App PRIVATE 
+    RESOURCE_DIR="resources"
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_LEFT_HANDED)
+    target_link_options(App PRIVATE
+        "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/resources@resources")
+    target_link_libraries(App PRIVATE emdawnwebgpu_cpp webgpu_glfw glm::glm)
     set_target_properties(App PROPERTIES SUFFIX ".html")
     target_link_options(App PRIVATE "-sASYNCIFY=1" "-sUSE_GLFW=3")
 else()
-    target_link_libraries(App PRIVATE webgpu_dawn webgpu_glfw glfw)
+    # Native: read directly from the source folder
+    target_compile_definitions(App PRIVATE 
+    RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_LEFT_HANDED)
+    target_link_libraries(App PRIVATE webgpu_dawn webgpu_glfw glfw glm::glm)
 endif()
 
 if(XCODE)

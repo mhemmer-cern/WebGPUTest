@@ -2,10 +2,7 @@
 
 #include <webgpu/webgpu_cpp_print.h>
 
-#include <fstream>
 #include <iostream>
-#include <sstream>
-#include <string>
 #include <string_view>
 #include <utility>
 
@@ -128,31 +125,12 @@ void inspectDevice(Device const& device) {
 	}
 }
 
-ShaderModule loadShaderModule(
-	Device const& device,
-	std::filesystem::path const& path
-) {
-	std::ifstream file(path);
-	if (!file) {
-		std::cerr << "Could not open shader file: " << path << std::endl;
-		return nullptr;
-	}
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-
-	// Both strings must stay alive until CreateShaderModule() returns,
-	// because StringView only points to their characters.
-	std::string code = buffer.str();
-	std::string label = path.filename().string();
-
-	ShaderSourceWGSL wgsl{};
-	wgsl.code = std::string_view(code);
-
-	ShaderModuleDescriptor desc{};
-	desc.nextInChain = &wgsl;
-	desc.label = std::string_view(label);
-
-	return device.CreateShaderModule(&desc);
+/**
+ * Round 'value' up to the next multiplier of 'step'.
+ */
+uint32_t ceilToNextMultiple(uint32_t value, uint32_t step) {
+    uint32_t divide_and_ceil = value / step + (value % step == 0 ? 0 : 1);
+    return step * divide_and_ceil;
 }
 
 bool fetchBufferDataSync(
