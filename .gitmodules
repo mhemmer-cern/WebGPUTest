@@ -1,4 +1,4 @@
 [submodule "dawn"]
-	path = dawn
+	path = external/dawn
 	url = https://github.com/google/dawn.git
 	ignore = dirty

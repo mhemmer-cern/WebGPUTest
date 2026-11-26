@@ -63,12 +63,12 @@ endif()
 # ---------------------------------------------------------------------------
 # Dawn
 # ---------------------------------------------------------------------------
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dawn/CMakeLists.txt")
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/dawn/CMakeLists.txt")
     message(FATAL_ERROR "Dawn submodule is missing. Run: git submodule update --init")
 endif()
 
 set(DAWN_FETCH_DEPENDENCIES ON)
-add_subdirectory("dawn" EXCLUDE_FROM_ALL)
+add_subdirectory("external/dawn" EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
 # GLM
@@ -78,63 +78,58 @@ include(FetchContent)
 FetchContent_Declare(
 	glm
 	URL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(glm)
 
 # ---------------------------------------------------------------------------
-# The app
+# fastgltf for loading glTF objects
 # ---------------------------------------------------------------------------
-add_executable(App
-    main.cpp
-    webgpu-utils.h
-    webgpu-utils.cpp
-    Application.h
-    Application.cpp
-    ResourceManager.h
-    ResourceManager.cpp)
-
-set_target_properties(App PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-    COMPILE_WARNING_AS_ERROR ON
+FetchContent_Declare(
+    fastgltf
+    GIT_REPOSITORY https://github.com/spnda/fastgltf.git
+    GIT_TAG        v1.0.1
+    SYSTEM
 )
+FetchContent_MakeAvailable(fastgltf)
 
-target_compile_definitions(App PRIVATE
-    GLM_FORCE_DEPTH_ZERO_TO_ONE
-    GLM_FORCE_LEFT_HANDED
-)
-
-if(MSVC)
-    target_compile_options(App PRIVATE /W4)
-else()
-    target_compile_options(App PRIVATE -Wall -Wextra -pedantic)
-endif()
-
-if(EMSCRIPTEN)
-    # Web: pack the resources folder into the page, available as "resources/..."
-    target_compile_definitions(App PRIVATE 
-    RESOURCE_DIR="resources"
-    GLM_FORCE_DEPTH_ZERO_TO_ONE
-    GLM_FORCE_LEFT_HANDED)
-    target_link_options(App PRIVATE
-        "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/resources@resources")
-    target_link_libraries(App PRIVATE emdawnwebgpu_cpp webgpu_glfw glm::glm)
-    set_target_properties(App PROPERTIES SUFFIX ".html")
-    target_link_options(App PRIVATE "-sASYNCIFY=1" "-sUSE_GLFW=3")
-else()
-    # Native: read directly from the source folder
-    target_compile_definitions(App PRIVATE 
-    RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources"
-    GLM_FORCE_DEPTH_ZERO_TO_ONE
-    GLM_FORCE_LEFT_HANDED)
-    target_link_libraries(App PRIVATE webgpu_dawn webgpu_glfw glfw glm::glm)
-endif()
-
-if(XCODE)
-    set_target_properties(App PROPERTIES
-        XCODE_GENERATE_SCHEME ON
-        XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Metal"
+# ---------------------------------------------------------------------------
+# Common settings for our own targets (used by the subdirectories)
+# ---------------------------------------------------------------------------
+function(webgputest_set_options target)
+    set_target_properties(${target} PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        COMPILE_WARNING_AS_ERROR ON
     )
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -pedantic)
+    endif()
+endfunction()
+
+# ---------------------------------------------------------------------------
+# Our code
+# ---------------------------------------------------------------------------
+add_subdirectory(renderer)
+add_subdirectory(app)
+
+# ---------------------------------------------------------------------------
+# Documentation (optional): cmake --build build --target docs
+# ---------------------------------------------------------------------------
+if(NOT EMSCRIPTEN)
+    find_package(Doxygen QUIET)
+    if(DOXYGEN_FOUND)
+        configure_file(docs/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+        add_custom_target(docs
+            COMMAND Doxygen::doxygen ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM)
+    else()
+        message(STATUS "Doxygen not found, 'docs' target unavailable")
+    endif()
 endif()
